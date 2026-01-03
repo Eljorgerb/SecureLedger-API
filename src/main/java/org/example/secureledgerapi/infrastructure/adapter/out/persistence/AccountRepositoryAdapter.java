@@ -5,7 +5,6 @@ import org.example.secureledgerapi.domain.port.out.AccountRepositoryPort;
 import org.example.secureledgerapi.infrastructure.adapter.out.persistence.entity.AccountJpaEntity;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;

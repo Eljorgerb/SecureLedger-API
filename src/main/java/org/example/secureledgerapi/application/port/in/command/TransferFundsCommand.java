@@ -1,24 +1,34 @@
 package org.example.secureledgerapi.application.port.in.command;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import lombok.Value;
+import org.example.secureledgerapi.domain.model.Money;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
-@Value // Lombok: genera constructor, getters, equals, hashCode
 public class TransferFundsCommand {
 
-    @NotNull
-    UUID sourceAccountId; // Cuenta origen (la que se debita)
+    private final UUID sourceAccountId;
+    private final UUID targetAccountId;
+    private final Money money;
 
-    @NotNull
-    UUID targetAccountId; // Cuenta destino (la que se acredita)
+    public TransferFundsCommand(
+            UUID sourceAccountId,
+            UUID targetAccountId,
+            Money money
+    ) {
+        this.sourceAccountId = sourceAccountId;
+        this.targetAccountId = targetAccountId;
+        this.money = money;
+    }
 
-    @NotNull
-    @DecimalMin(value = "0.01", inclusive = true, message = "Amount must be positive")
-    BigDecimal amount;
+    public UUID getSourceAccountId() {
+        return sourceAccountId;
+    }
 
-    // Aquí podrías añadir un campo para la moneda o la descripción, si es necesario.
+    public UUID getTargetAccountId() {
+        return targetAccountId;
+    }
+
+    public Money getMoney() {
+        return money;
+    }
 }

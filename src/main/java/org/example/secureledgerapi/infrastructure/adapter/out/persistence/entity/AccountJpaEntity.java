@@ -1,38 +1,88 @@
 package org.example.secureledgerapi.infrastructure.adapter.out.persistence.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-// Usamos Lombok aquí para reducir el boilerplate (Getters/Setters)
 @Entity
 @Table(name = "accounts")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class AccountJpaEntity {
 
     @Id
+    @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
 
-    // Persistimos el balance y la moneda como columnas separadas
+    @Column(name = "balance_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal balanceAmount;
 
+    @Column(name = "balance_currency", nullable = false, length = 3)
     private String balanceCurrency;
 
     @Version
-    // CRUCIAL: Esta anotación de JPA es la que permite el Optimistic Locking
-    // Spring/Hibernate se encargará de gestionar este campo automáticamente
+    @Column(name = "version", nullable = false)
     private Long version;
 
+    // 🔹 Constructor vacío obligatorio para JPA
+    protected AccountJpaEntity() {
+    }
 
+    // 🔹 Constructor de conveniencia
+    public AccountJpaEntity(
+            UUID id,
+            UUID ownerId,
+            BigDecimal balanceAmount,
+            String balanceCurrency,
+            Long version
+    ) {
+        this.id = id;
+        this.ownerId = ownerId;
+        this.balanceAmount = balanceAmount;
+        this.balanceCurrency = balanceCurrency;
+        this.version = version;
+    }
+
+    // --- Getters y setters SOLO para JPA ---
+
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getOwnerId() {
+        return ownerId;
+    }
+
+    public BigDecimal getBalanceAmount() {
+        return balanceAmount;
+    }
+
+    public String getBalanceCurrency() {
+        return balanceCurrency;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setOwnerId(UUID ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public void setBalanceAmount(BigDecimal balanceAmount) {
+        this.balanceAmount = balanceAmount;
+    }
+
+    public void setBalanceCurrency(String balanceCurrency) {
+        this.balanceCurrency = balanceCurrency;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
 }

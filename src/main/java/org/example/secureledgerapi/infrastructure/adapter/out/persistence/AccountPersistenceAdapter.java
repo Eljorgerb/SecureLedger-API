@@ -1,41 +1,39 @@
 package org.example.secureledgerapi.infrastructure.adapter.out.persistence;
 
+import org.example.secureledgerapi.application.port.out.LoadAccountPort;
+import org.example.secureledgerapi.application.port.out.UpdateAccountStatePort;
 import org.example.secureledgerapi.domain.model.Account;
-import org.example.secureledgerapi.domain.port.out.AccountPersistencePort;
-import org.example.secureledgerapi.infrastructure.adapter.out.persistence.mapper.AccountMapper; // Importación clave
-import org.example.secureledgerapi.infrastructure.adapter.out.persistence.entity.AccountJpaEntity;
-
+import org.example.secureledgerapi.infrastructure.adapter.out.persistence.mapper.AccountMapper;
 import org.springframework.stereotype.Component;
 
-@Component
-public class AccountPersistenceAdapter implements AccountPersistencePort {
+import java.util.Optional;
+import java.util.UUID;
 
-    private final SpringDataAccountRepository accountRepository; // Asume el repositorio de JPA
+@Component
+public class AccountPersistenceAdapter
+        implements LoadAccountPort, UpdateAccountStatePort {
+
+    private final SpringDataAccountRepository accountRepository;
     private final AccountMapper accountMapper;
 
-    // Constructor: Ahora puede inyectar AccountMapper sin error
-    public AccountPersistenceAdapter(SpringDataAccountRepository accountRepository, AccountMapper accountMapper) {
+    public AccountPersistenceAdapter(
+            SpringDataAccountRepository accountRepository,
+            AccountMapper accountMapper
+    ) {
         this.accountRepository = accountRepository;
         this.accountMapper = accountMapper;
     }
 
     @Override
-    public Account loadAccount(java.util.UUID accountId) {
-        // Lógica de carga...
+    public Optional<Account> load(UUID accountId) {
         return accountRepository.findById(accountId)
-                .map(accountMapper::mapToDomainEntity)
-                .orElse(null); // O lanzar una excepción
+                .map(accountMapper::mapToDomainEntity);
     }
 
     @Override
-    public Account saveAccount(Account account) {
-        // 1. Usa el Mapper
-        AccountJpaEntity entity = accountMapper.mapToJpaEntity(account);
-
-        // 2. Persiste
-        AccountJpaEntity savedEntity = accountRepository.save(entity);
-
-        // 3. Usa el Mapper para devolver el objeto de Dominio
+    public Account update(Account account) {
+        var savedEntity =
+                accountRepository.save(accountMapper.mapToJpaEntity(account));
         return accountMapper.mapToDomainEntity(savedEntity);
     }
 }

@@ -1,10 +1,11 @@
 package org.example.secureledgerapi.application.service;
 
+import org.example.secureledgerapi.application.port.out.LoadAccountPort;
+import org.example.secureledgerapi.application.port.out.UpdateAccountStatePort;
+import org.example.secureledgerapi.domain.exception.AccountNotFoundException;
 import org.example.secureledgerapi.domain.model.Account;
 import org.example.secureledgerapi.domain.model.Money;
 import org.example.secureledgerapi.domain.port.in.AccountServicePort;
-import org.example.secureledgerapi.domain.port.out.AccountPersistencePort;
-import org.example.secureledgerapi.domain.exception.AccountNotFoundException; // Asegúrate de tener esta excepción
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,66 +14,77 @@ import java.util.UUID;
 @Service
 public class AccountService implements AccountServicePort {
 
-    private final AccountPersistencePort accountPersistencePort;
+    private final LoadAccountPort loadAccountPort;
+    private final UpdateAccountStatePort updateAccountStatePort;
 
-    public AccountService(AccountPersistencePort accountPersistencePort) {
-        this.accountPersistencePort = accountPersistencePort;
+    public AccountService(
+            LoadAccountPort loadAccountPort,
+            UpdateAccountStatePort updateAccountStatePort
+    ) {
+        this.loadAccountPort = loadAccountPort;
+        this.updateAccountStatePort = updateAccountStatePort;
     }
 
-    // --- 1. Método transferFunds (Existente) ---
+    // --- 1. Transferir fondos ---
     @Override
     @Transactional
     public Account transferFunds(UUID sourceId, UUID targetId, Money money) {
-        // Lógica de transferencia: cargar A, debitar, cargar B, depositar, guardar A, guardar B.
-        Account sourceAccount = accountPersistencePort.loadAccount(sourceId);
-        if (sourceAccount == null) {
-            throw new AccountNotFoundException("Cuenta origen no encontrada: " + sourceId);
-        }
 
-        Account targetAccount = accountPersistencePort.loadAccount(targetId);
-        if (targetAccount == null) {
-            throw new AccountNotFoundException("Cuenta destino no encontrada: " + targetId);
-        }
+        Account sourceAccount = loadAccountPort.load(sourceId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException("Cuenta origen no encontrada: " + sourceId)
+                );
+
+        Account targetAccount = loadAccountPort.load(targetId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException("Cuenta destino no encontrada: " + targetId)
+                );
 
         sourceAccount.withdraw(money);
         targetAccount.deposit(money);
 
-        accountPersistencePort.saveAccount(targetAccount);
-        return accountPersistencePort.saveAccount(sourceAccount);
+        updateAccountStatePort.update(targetAccount);
+        return updateAccountStatePort.update(sourceAccount);
     }
 
-    // --- 2. Método deposit (NUEVA IMPLEMENTACIÓN) ---
+    // --- 2. Depósito ---
     @Override
     @Transactional
     public Account deposit(UUID accountId, Money money) {
-        Account account = accountPersistencePort.loadAccount(accountId);
-        if (account == null) {
-            throw new AccountNotFoundException("Cuenta no encontrada para depósito: " + accountId);
-        }
+
+        Account account = loadAccountPort.load(accountId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException("Cuenta no encontrada para depósito: " + accountId)
+                );
 
         account.deposit(money);
-        return accountPersistencePort.saveAccount(account);
+        return updateAccountStatePort.update(account);
     }
 
-    // --- 3. Método getAccountDetails (Existente) ---
+    // --- 3. Obtener detalles de cuenta ---
     @Override
     public Account getAccountDetails(UUID accountId) {
-        return accountPersistencePort.loadAccount(accountId);
+        return loadAccountPort.load(accountId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException("Cuenta no encontrada: " + accountId)
+                );
     }
 
-    // --- 4. Método createAccount (NUEVA IMPLEMENTACIÓN) ---
+    // --- 4. Crear cuenta ---
     @Override
     @Transactional
     public Account createAccount(String ownerId, Money initialBalance) {
 
-        // 1. Lógica de Dominio: Crea una nueva cuenta (con un nuevo ID y versión 0).
         UUID accountId = UUID.randomUUID();
         UUID ownerUuid = UUID.fromString(ownerId);
 
-        // Asumiendo que el constructor de Account toma (UUID id, UUID owner, Money balance, Long version)
-        Account newAccount = new Account(accountId, ownerUuid, initialBalance, 0L);
+        Account newAccount = new Account(
+                accountId,
+                ownerUuid,
+                initialBalance,
+                0L
+        );
 
-        // 2. Llama al Puerto de Salida para persistir la entidad.
-        return accountPersistencePort.saveAccount(newAccount);
+        return updateAccountStatePort.update(newAccount);
     }
 }
